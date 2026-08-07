@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMB</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&display=swap');
+        :root{
+            /* CORES */
+
+            /* FONT */
+            --font-titulo: 'Cinzel' ,Arial, Helvetica, sans-serif;
+        }
+        html, body{
+            margin: 0;
+        }
+        body{
+            font-family: Arial, Helvetica, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header{
+            text-align: center;
+            background-color: blue;
+            margin-top: -15px;
+            margin-bottom: 10px;
+            width: 100%;
+            padding: 20px 0px;
+            box-shadow: 0px 2px 5px #00000056;
+        }
+        .inline-level{
+            display: inline;
+        }
+        nav img{
+            width: 48px;
+        }
+        nav a{
+            padding: 40px 20px 10px 20px;
+            border-radius: 10px;
+        }
+        nav a:hover{
+            background-color: blue;
+            box-shadow: inset 0px 0px 10px #0000008c;
+        }
+        main{
+            margin: auto;
+            text-align: center;
+            max-width: 800px;
+            padding: 30px; 
+            flex: 1;      
+        }
+        header h1{
+            font-weight: bolder;
+            font-size: 3em;
+            text-align: center;
+            font-family: var(--font-titulo);
+            margin-top: 15px;
+            margin-bottom: 0px;
+        }
+        h2{
+            font-weight: bolder;
+            font-size: 2em;
+            text-align: center;
+            font-family: var(--font-titulo);          
+            margin: 15px;
+        }
+        img{
+            width: 100%;
+            max-width: 450px;
+            border-radius: 10px;
+            display: block;
+            margin: auto;
+        }
+        main img:hover{
+            box-shadow: 0px 0px 10px blue;
+        }
+        h2:hover{
+            text-shadow: 0px 0px 3px blue;
+        }
+        /* main p{
+            margin: auto;
+            font-size: 25px;
+            text-indent: 30px;
+            line-height: 1.5em;
+            max-width: 800px;
+        } */
+        main a{
+            line-height: 3em;
+            padding: 10px 20px;
+            color: blue;
+            font-weight: bold;
+            text-decoration: none;
+            background-color: rgba(0, 0, 255, 0.267);
+        }
+        /* main a::after{
+            content: '\00A0\1F517';
+        } */
+        footer{
+            background-color: blue;
+            color: white;
+            padding: 20px 0px;
+            width: 100%;
+            font-weight: bold;
+            font-size: 20px;
+            box-shadow: 0px 0px 10px #00000056;
+        }
+        footer p{
+            text-align: center;
+            width: 100%;
+        }
+        footer a{
+            color: white;
+        }
+        footer a:hover{
+            color: dimgray;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Sol Movies Brasil</h1>
+        <nav>            
+            <a href="https://www.youtube.com/@solmoviesbrasiloficial" target="_blank" rel="external"><img src="../foto/manutencao/icone/favicon-youtube.ico" alt="icone do YouTube" class="inline-level"></a>
+            <a href="https://www.tiktok.com/@sol.movies.brasil.ofc" target="_blank" rel="external"><img src="../foto/manutencao/icone/favicon-tiktok.ico" alt="icone do TikTok" class="inline-level"></a>
+
+        </nav>
+    </header>
+    <main>
+        
+        <img src="../foto/manutencao/site-em-manutencao.png" alt="imagem para alerta que estamos em manutenção">
+        <a href="../smb.html" target="_self" rel="prev">Voltar</a>
+    </main>
+    <footer>
+        <p>&copy; 2026 Sol Movies Brasil</p>
+        <p><a href="#">Contato</a> | <a href="#">Termos de Uso</a> | <a href="#">Política de Privacidade</a></p>
+    </footer>
+    <script src="aviso.js"></script>
+</body>
+</html>
