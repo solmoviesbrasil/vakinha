@@ -86,6 +86,31 @@
 
         });
 
+    // Destrava o áudio em celulares: iOS/Android só permitem o primeiro
+    // play() de cada elemento se ele acontecer dentro de um toque real do
+    // usuário. Aqui aproveitamos o primeiro toque/clique na página pra
+    // "abrir" cada áudio (play + pause imediato), permitindo que depois
+    // o tocarSom() consiga tocá-los sozinho, sem gesto do usuário.
+    function desbloquearAudios() {
+
+        Object.values(AUDIOS)
+            .flat()
+            .forEach(audio => {
+
+                audio.play()
+                    .then(() => {
+                        audio.pause();
+                        audio.currentTime = 0;
+                    })
+                    .catch(() => {});
+
+            });
+
+    }
+
+    document.addEventListener("touchstart", desbloquearAudios, { once: true });
+    document.addEventListener("click", desbloquearAudios, { once: true });
+
     function criarContainer() {
 
         if (container) return;
