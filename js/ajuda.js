@@ -185,15 +185,99 @@ function validarRespostaAPI(json) {
 
 
 // ==========================================================
-// DOAÇÕES PENDENTES DE ANIMAÇÃO (agora controlado pelo servidor)
+// DOAÇÕES PENDENTES DE ANIMAÇÃO
 // ==========================================================
+// O servidor agora devolve, em broadcast, toda doação criada dentro
+// de uma janela de tempo (não mais "a primeira aba que perguntar
+// leva"). Cabe a CADA cliente decidir se ainda deve tocar a
+// animação, comparando o horário em que a doação aconteceu com a
+// duração da animação daquele valor:
+//
+//   - Se o usuário já está na página -> ainda dentro do prazo -> toca.
+//   - Se o usuário entrou depois que o prazo já expirou -> ignora.
+//   - Se o usuário entrou no meio do prazo -> ainda toca (mesmo que,
+//     na prática, quem já estava vendo esteja num ponto mais
+//     avançado da animação).
 
 const PENDENTES_URL =
     'https://sistema-doacoes.moviesbrasil.workers.dev/doacoes-pendentes';
 
-const PENDENTES_INTERVAL = 5000; // checa mais rápido que o ticker geral
+const PENDENTES_INTERVAL = 2500; // polling rápido para simular tempo real
 
 let buscandoPendentes = false;
+
+// Mesma tabela de duração usada em animacao.js (duracaoCelebracao),
+// para o front conseguir calcular, por conta própria, se uma doação
+// ainda está "viva" ou já expirou.
+const DURACAO_POR_NIVEL_MS = [
+    6000,  // nível 1 — valor < 5
+    6500,  // nível 2 — valor >= 5
+    8000,  // nível 3 — valor >= 10
+    8500,  // nível 4 — valor >= 20
+    9000,  // nível 5 — valor >= 50
+    9500,  // nível 6 — valor >= 100
+    10000  // nível 7 — valor >= 499
+];
+
+function calcularNivelDoacao(valor) {
+
+    if (valor >= 499) return 7;
+    if (valor >= 100) return 6;
+    if (valor >= 50)  return 5;
+    if (valor >= 20)  return 4;
+    if (valor >= 10)  return 3;
+    if (valor >= 5)   return 2;
+
+    return 1;
+
+}
+
+function duracaoAnimacaoMs(valor) {
+
+    const nivel = calcularNivelDoacao(numeroSeguro(valor));
+
+    return DURACAO_POR_NIVEL_MS[nivel - 1];
+
+}
+
+// Converte o "data" vindo do D1 (formato SQLite datetime('now'),
+// ex: "2026-08-08 20:15:03", sempre em UTC) para milissegundos,
+// interpretando corretamente como UTC (sem isso o navegador trataria
+// como horário local e o cálculo de "expirou ou não" ficaria errado).
+function timestampServidorMs(dataStr) {
+
+    if (typeof dataStr !== "string")
+        return null;
+
+    const iso = dataStr.trim().replace(" ", "T") + "Z";
+    const t = Date.parse(iso);
+
+    return Number.isFinite(t) ? t : null;
+
+}
+
+// Guarda quais doações já foram processadas nesta sessão (evita
+// disparar a mesma animação de novo a cada polling, já que o
+// servidor devolve tudo que está dentro da janela, não só o que é
+// "novo"). Guardamos junto o momento em que foram vistas, para poder
+// limpar entradas antigas e não deixar esse controle crescer pra
+// sempre numa sessão longa.
+const doacoesJaProcessadas = new Map();
+
+function limparProcessadasAntigas() {
+
+    const agora = Date.now();
+    const LIMITE_MS = 60000; // bem maior que a maior duração de animação
+
+    for (const [id, vistoEm] of doacoesJaProcessadas) {
+
+        if (agora - vistoEm > LIMITE_MS) {
+            doacoesJaProcessadas.delete(id);
+        }
+
+    }
+
+}
 
 async function buscarDoacoesPendentes() {
 
@@ -221,13 +305,45 @@ async function buscarDoacoesPendentes() {
         if (!dados || !Array.isArray(dados.pendentes))
             return;
 
+        const agora = Date.now();
+
+        limparProcessadasAntigas();
+
         for (const doacao of dados.pendentes) {
 
+            if (!doacao || doacao.id === undefined || doacao.id === null)
+                continue;
+
+            // Já mostramos (ou descartamos) essa doação nesta sessão.
+            if (doacoesJaProcessadas.has(doacao.id))
+                continue;
+
+            const valor = numeroSeguro(doacao.valor);
+            const timestamp = timestampServidorMs(doacao.data);
+
+            // Marca como processada de qualquer forma, pra não ficar
+            // reavaliando a mesma doação a cada novo polling.
+            doacoesJaProcessadas.set(doacao.id, agora);
+
+            if (timestamp === null)
+                continue;
+
+            const duracao = duracaoAnimacaoMs(valor);
+            const decorrido = agora - timestamp;
+
+            // Requisito 2: quem entrou depois que a animação já
+            // expirou não vê mais nada.
+            if (decorrido >= duracao)
+                continue;
+
+            // Requisito 1 e 3: dentro do prazo -> toca, seja porque o
+            // usuário já estava na página, seja porque entrou no meio
+            // da janela.
             if (typeof window.mostrarCelebracao === "function") {
 
                 window.mostrarCelebracao(
                     limparTexto(doacao.nome),
-                    numeroSeguro(doacao.valor)
+                    valor
                 );
 
             }
