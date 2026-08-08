@@ -86,7 +86,7 @@ body {
 
 header {
     min-height: 200px;
-    background-image: url('../foto/ajudar/img2-cabecalho.jpg');
+    background-image: url('../foto/ajudar/img-cabecalho.jpg');
     background-size: cover;
     background-position: center;
 }
@@ -94,7 +94,7 @@ header {
 nav {
     display: flex;
     justify-content: space-around;
-    background-color: rgb(31, 31, 31);
+    background: linear-gradient(to right,  rgb(31, 31, 31), transparent);
     align-items: center;
     min-height: 40px;
     padding: 8px 12px;
@@ -121,19 +121,34 @@ nav ul {
 }
 
 nav a {
-    color: white;
+    color: #f0e6c8;
     text-decoration: none;
     letter-spacing: 1px;
+    font-family: var(--font-destaque);
     font-weight: bold;
     opacity: var(--opacidade-nav);
     font-size: 0.95rem;
+}
+nav a:hover{
+    color: gold;
+    transition-duration: 1s;
 }
 
 main {
     width: 100%;
     font-family: var(--font-destaque);
 }
-
+mark{
+    background-color: transparent;
+    opacity: 90%;
+    color: white;
+}
+.cor-mark{
+    color: black;
+}
+strong{
+    opacity: 95%;
+}
 a {
     text-decoration: none;
     color: black;
@@ -670,7 +685,12 @@ section.layout-sessao1 {
     font-size: 2em;
     font-weight: normal;
 }
+.container-sessao3 h2{
+    opacity: 90%;
+
+}
 .container-sessao3 p{
+    opacity: var(--opacidade-texto);
     text-align: justify;
 }
 /* SESSÃO FINALIZADO */
