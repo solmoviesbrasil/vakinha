@@ -88,28 +88,75 @@
 
     // Destrava o áudio em celulares: iOS/Android só permitem o primeiro
     // play() de cada elemento se ele acontecer dentro de um toque real do
-    // usuário. Aqui aproveitamos o primeiro toque/clique na página pra
+    // usuário. Aqui aproveitamos a primeira interação na página pra
     // "abrir" cada áudio (play + pause imediato), permitindo que depois
     // o tocarSom() consiga tocá-los sozinho, sem gesto do usuário.
+    //
+    // Diferente da versão anterior, aqui:
+    // - Tentamos em MAIS tipos de evento (click, touchstart, pointerdown,
+    //   keydown), porque nem todo navegador/dispositivo conta os mesmos
+    //   gestos como "interação válida" pra liberar áudio.
+    // - Não paramos na primeira tentativa: se falhar, continuamos
+    //   escutando novas interações até o desbloqueio realmente funcionar.
+    // - Logamos sucesso/erro no console, pra dar pra diagnosticar se o
+    // problema é bloqueio do navegador, arquivo não encontrado, etc.
+    let audioDesbloqueado = false;
+
     function desbloquearAudios() {
 
-        Object.values(AUDIOS)
-            .flat()
-            .forEach(audio => {
+        if (audioDesbloqueado) return;
 
+        const todosAudios = Object.values(AUDIOS).flat();
+
+        Promise.all(
+            todosAudios.map(audio =>
                 audio.play()
                     .then(() => {
                         audio.pause();
                         audio.currentTime = 0;
+                        return true;
                     })
-                    .catch(() => {});
+                    .catch(erro => {
+                        console.warn(
+                            "Não foi possível destravar áudio:",
+                            audio.currentSrc || audio.src,
+                            erro && erro.name,
+                            erro && erro.message
+                        );
+                        return false;
+                    })
+            )
+        ).then(resultados => {
 
-            });
+            if (resultados.every(Boolean)) {
+
+                audioDesbloqueado = true;
+
+                console.log(
+                    "Áudio destravado com sucesso, celebrações agora terão som."
+                );
+
+                removerListenersDesbloqueio();
+
+            }
+
+        });
 
     }
 
-    document.addEventListener("touchstart", desbloquearAudios, { once: true });
-    document.addEventListener("click", desbloquearAudios, { once: true });
+    function removerListenersDesbloqueio() {
+
+        document.removeEventListener("touchstart", desbloquearAudios);
+        document.removeEventListener("pointerdown", desbloquearAudios);
+        document.removeEventListener("click", desbloquearAudios);
+        document.removeEventListener("keydown", desbloquearAudios);
+
+    }
+
+    document.addEventListener("touchstart", desbloquearAudios);
+    document.addEventListener("pointerdown", desbloquearAudios);
+    document.addEventListener("click", desbloquearAudios);
+    document.addEventListener("keydown", desbloquearAudios);
 
     function criarContainer() {
 
@@ -149,7 +196,16 @@
 
         audio.currentTime = 0;
 
-        audio.play().catch(() => {});
+        audio.play().catch(erro => {
+
+            console.warn(
+                "Falha ao tocar áudio da celebração:",
+                audio.currentSrc || audio.src,
+                erro && erro.name,
+                erro && erro.message
+            );
+
+        });
 
     }
     function processarFila() {
