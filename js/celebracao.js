@@ -15,23 +15,23 @@
     // Coloque aqui o caminho da imagem .png correspondente a cada valor
     // exato de doação (mesma pasta/padrão usado pelos áudios em "../assets/...")
     const MAPA_IMAGENS = {
-        1:    "../foto/personagens/pobre/rosa.png",
-        2:    "../foto/personagens/pobre/pena.png",
-        3:    "../foto/personagens/pobre/vela.png",
-        5:    "../foto/personagens/pobre/moeda.png",
-        7:    "../foto/personagens/pobre/apolo2.png",
-        10:   "../foto/personagens/pobre/hermes.png",
-        20:   "../foto/personagens/pobre/ares.png",
-        35:   "../foto/personagens/rico/hera.png",
-        50:   "../foto/personagens/rico/apolo2.png",
-        75:   "../foto/personagens/rico/atena.png",
-        100:  "../foto/personagens/rico/zeus-joven.png",
-        150:  "../foto/personagens/rico/hades.png",
-        200:  "../foto/personagens/rico/poseidon2.png",
-        300:  "../foto/personagens/rico/zeus.png",
-        500:  "../foto/personagens/rico/zeus.png",
-        750:  "../foto/personagens/rico/poseidon.png",
-        1000: "../foto/personagens/rico/olimpo.png"
+        1:    "personagens/pobre/rosa.png",
+        2:    "personagens/pobre/pena.png",
+        3:    "personagens/pobre/vela.png",
+        5:    "personagens/pobre/moeda.png",
+        7:    "personagens/pobre/apolo2.png",
+        10:   "personagens/pobre/hermes.png",
+        20:   "personagens/pobre/ares.png",
+        35:   "personagens/rico/hera.png",
+        50:   "personagens/rico/apolo2.png",
+        75:   "personagens/rico/atena.png",
+        100:  "personagens/rico/zeus-joven.png",
+        150:  "personagens/rico/hades.png",
+        200:  "personagens/rico/poseidon2.png",
+        300:  "personagens/rico/zeus.png",
+        500:  "personagens/rico/zeus.png",
+        750:  "personagens/rico/poseidon.png",
+        1000: "personagens/rico/olimpo.png"
     };
 
     // Lista de valores da tabela, do menor para o maior (calculada uma vez só)
