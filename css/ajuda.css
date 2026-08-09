@@ -543,7 +543,7 @@ section.layout-sessao1 {
 
 .container-img {
     flex: 1 1 300px;
-    max-width: 500px;
+    max-width: 400px;
     width: 100%;
 }
 
@@ -551,8 +551,8 @@ section.layout-sessao1 {
     display: block;
     margin: auto;
     width: 100%;
-    max-width: 500px;
-    height: auto;
+    max-width: 400px;
+    height: 500px;
     object-fit: cover;
     border-radius: 8px;
 }
@@ -701,7 +701,7 @@ footer{
     align-items: center;
     background-color: #16130F;
     padding: 20px;
-    min-height: 150px;
+    min-height: 200px;
 }
 .links-rodape{
     max-width: 520px;

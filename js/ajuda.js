@@ -8,11 +8,11 @@
 const API_URL =
     'https://sistema-doacoes.moviesbrasil.workers.dev/doacoes';
 
-const GOAL = 2300;
+const GOAL = 1700;
 
 const FETCH_TIMEOUT = 5000;
 
-const UPDATE_INTERVAL = 30000;
+const UPDATE_INTERVAL = 2000;
 
 const MAX_NAME_LENGTH = 40;
 
@@ -31,6 +31,13 @@ let currentAnimation = null;
 
 let abortController = null;
 
+let assinaturaDoacoesAtual = "";
+
+let assinaturaRankingAtual = "";
+
+let doacoesAtuais = [];
+
+let atualizacaoPendente = false;
 
 // ==========================================================
 // FORMATAÇÃO
@@ -165,6 +172,7 @@ function validarRespostaAPI(json) {
         .filter(item => item)
         .slice(0, 100)
         .map(item => ({
+            id: item.id ?? null,
             nome: limparTexto(item.nome),
             valor: numeroSeguro(item.valor, 0)
         }));
@@ -202,7 +210,9 @@ function validarRespostaAPI(json) {
 const PENDENTES_URL =
     'https://sistema-doacoes.moviesbrasil.workers.dev/doacoes-pendentes';
 
-const PENDENTES_INTERVAL = 2500; // polling rápido para simular tempo real
+// Reduzido para garantir que uma doação nova seja detectada e
+// refletida nos rankings em até 2 segundos, como solicitado.
+const PENDENTES_INTERVAL = 1000;
 
 let buscandoPendentes = false;
 
@@ -279,6 +289,19 @@ function limparProcessadasAntigas() {
 
 }
 
+
+// ==========================================================
+// NOTA IMPORTANTE
+// ==========================================================
+// Em vez de remendar manualmente o ranking dos 3 maiores com
+// dados parciais (o que deixava esse ranking fora de sincronia
+// com o ranking geral e com o total arrecadado, e corria o
+// risco de renderizar duas vezes com informações diferentes),
+// toda doação nova agora aciona carregarDoacoes(), que busca a
+// lista COMPLETA e ATUAL do servidor e redesenha o ranking geral,
+// o ranking dos 3 maiores e o total juntos, com os mesmos dados,
+// garantindo consistência entre os três.
+
 async function buscarDoacoesPendentes() {
 
     if (buscandoPendentes)
@@ -309,6 +332,11 @@ async function buscarDoacoesPendentes() {
 
         limparProcessadasAntigas();
 
+        // Marca se, nesta rodada de polling, alguma doação nova foi
+        // encontrada. Uma única atualização no final evita chamadas
+        // repetidas quando várias doações chegam juntas.
+        let houveDoacaoNova = false;
+
         for (const doacao of dados.pendentes) {
 
             if (!doacao || doacao.id === undefined || doacao.id === null)
@@ -321,8 +349,9 @@ async function buscarDoacoesPendentes() {
             const valor = numeroSeguro(doacao.valor);
             const timestamp = timestampServidorMs(doacao.data);
 
-            // Marca como processada de qualquer forma, pra não ficar
-            // reavaliando a mesma doação a cada novo polling.
+            houveDoacaoNova = true;
+
+            // Marca como processada para não processar novamente
             doacoesJaProcessadas.set(doacao.id, agora);
 
             if (timestamp === null)
@@ -347,6 +376,26 @@ async function buscarDoacoesPendentes() {
                 );
 
             }
+
+        }
+
+        // ==========================================================
+        // ATUALIZA OS DOIS RANKINGS (E O TOTAL) IMEDIATAMENTE
+        // ==========================================================
+        // Busca dados frescos do servidor e redesenha o ranking geral,
+        // o ranking dos 3 maiores e o total juntos, garantindo que
+        // fiquem sempre consistentes entre si. Sem atraso artificial,
+        // para refletir a doação na tela o mais rápido possível
+        // (dentro do intervalo de polling de ${PENDENTES_INTERVAL}ms).
+
+        if (houveDoacaoNova) {
+
+            carregarDoacoes().catch(error => {
+                console.error(
+                    "Falha ao atualizar rankings após nova doação.",
+                    error
+                );
+            });
 
         }
 
@@ -507,29 +556,20 @@ function criarElemento(
 
 
 function removerInterfaceAnterior() {
-
-    if (
-        currentAnimation
-    ) {
-
-        currentAnimation.cancel();
-
+    if (currentAnimation !== null) {
+        cancelAnimationFrame(currentAnimation);
         currentAnimation = null;
-
     }
 
-    const antigo =
-        document.getElementById(
-            "donor-ticker-wrapper"
-        );
+    const antigo = document.getElementById(
+        "donor-ticker-wrapper"
+    );
 
     if (antigo) {
-
         antigo.remove();
-
     }
-
 }
+
 // ==========================================================
 // CRIAÇÃO DA INTERFACE
 // ==========================================================
@@ -541,11 +581,196 @@ const dados = await buscarDoacoes();
 if (!dados)
     return;
 
-// A animação não é mais disparada aqui: quem decide o que já foi
-// "comemorado" é o servidor, via buscarDoacoesPendentes().
-// Esta função cuida só da parte visual (ticker, ranking, total).
+// ==========================================================
+// VERIFICA SE A LISTA REALMENTE MUDOU
+// ==========================================================
 
-removerInterfaceAnterior();
+const listaNova = Array.isArray(dados.doacoes)
+    ? dados.doacoes
+    : [];
+
+// ==========================================================
+// TOTAL (sempre atualizado, independente do ticker mudar ou não)
+// ==========================================================
+// Antes, essa atualização ficava DEPOIS da checagem de "houve
+// doação nova". Se essa checagem desse falso negativo (ex.: a
+// lista de doações não trouxe informação suficiente pra saber
+// que havia algo novo), a função retornava mais cedo e o valor
+// arrecadado nunca era recalculado. Agora o total é sempre
+// recalculado a partir do que veio do servidor, em toda chamada.
+
+const currentStr =
+    formatarReal(
+        numeroSeguro(dados.total)
+    );
+
+const goalStr =
+    formatarReal(GOAL);
+
+const progressCard =
+    document.getElementById("progress-card");
+
+const porcentagem = Math.min(
+    (numeroSeguro(dados.total) / GOAL) * 100,
+    100
+).toFixed(1);
+
+const valorArrecadado =
+    document.getElementById("valor-arrecadado");
+
+const valorMeta =
+    document.getElementById("valor-meta");
+
+const porcentagemMeta =
+    document.getElementById("porcentagem");
+
+const barra =
+    document.getElementById("barra-preenchida");
+
+if (valorArrecadado)
+    valorArrecadado.textContent = currentStr;
+
+if (valorMeta)
+    valorMeta.textContent = goalStr;
+
+if (porcentagemMeta)
+    porcentagemMeta.textContent = porcentagem + "%";
+
+if (barra)
+    barra.style.width = porcentagem + "%";
+
+if (progressCard) {
+
+    progressCard.innerHTML = "";
+
+    const titulo = criarElemento(
+        "div",
+        `${porcentagem}% arrecadado`
+    );
+
+    titulo.style.cssText = `
+        color:#fff;
+        font-family:'Orbitron',Arial,sans-serif;
+        font-size:1rem;
+        text-align:center;
+        margin-bottom:8px;
+        letter-spacing:2px;
+    `;
+
+    const barraProgresso = criarElemento("div");
+
+    barraProgresso.style.cssText = `
+        width:100%;
+        height:12px;
+        background:#4b3528;
+        border-radius:20px;
+        overflow:hidden;
+    `;
+
+    const preenchimento =
+        criarElemento("div");
+
+    preenchimento.style.cssText = `
+        width:${porcentagem}%;
+        height:100%;
+        background:#8F9333;
+        transition:width .5s ease;
+    `;
+
+    barraProgresso.appendChild(preenchimento);
+
+    const texto = criarElemento(
+        "div",
+        `${currentStr} de ${goalStr}`
+    );
+
+    texto.style.cssText = `
+        margin-top:8px;
+        color:#D9CDBF;
+        text-align:center;
+        font-size:.9rem;
+        font-family:'Open Sans',sans-serif;
+    `;
+
+    progressCard.append(
+        titulo,
+        barraProgresso,
+        texto
+    );
+}
+
+const existeTicker =
+    !!document.getElementById("donor-ticker-wrapper");
+
+// ==========================================================
+// DETECÇÃO DE MUDANÇA (sem depender de "id")
+// ==========================================================
+// A rota /doacoes hoje não retorna "id" (só nome e valor), então
+// comparar por id não é confiável. Em vez disso, montamos uma
+// "assinatura" com nome+valor de cada doação, na ordem em que
+// vieram, e comparamos com a assinatura da última vez. Qualquer
+// doação nova, removida, ou com valor alterado muda essa
+// assinatura, então o ticker é corretamente reconstruído.
+
+const assinaturaNova =
+    listaNova
+        .map(d => `${d.id ?? ""}:${d.nome}:${numeroSeguro(d.valor)}`)
+        .join("|");
+
+const assinaturaRankingNova =
+    (Array.isArray(dados.ranking) ? dados.ranking : [])
+        .map(d =>
+            `${d.id ?? ""}:${d.nome}:${numeroSeguro(d.valor)}:${d.mensagem || ""}`
+        )
+        .join("|");
+
+const houveMudanca =
+    assinaturaNova !== assinaturaDoacoesAtual ||
+    assinaturaRankingNova !== assinaturaRankingAtual;
+
+// ==========================================================
+// PRIMEIRA EXECUÇÃO
+// ==========================================================
+
+if (!existeTicker) {
+
+    doacoesAtuais = [...listaNova];
+    assinaturaDoacoesAtual = assinaturaNova;
+
+    assinaturaRankingAtual = assinaturaRankingNova;
+
+    removerInterfaceAnterior();
+
+}
+// ==========================================================
+// NÃO HOUVE NOVA DOAÇÃO
+// ==========================================================
+
+else if (!houveMudanca) {
+
+    // Apenas atualiza nossa referência interna.
+    // O ticker continua exatamente onde está.
+    doacoesAtuais = [...listaNova];
+    assinaturaDoacoesAtual = assinaturaNova;
+
+    assinaturaRankingAtual = assinaturaRankingNova;
+
+    return;
+}
+
+// ==========================================================
+// HOUVE NOVA DOAÇÃO
+// ==========================================================
+
+else {
+
+    doacoesAtuais = [...listaNova];
+    assinaturaDoacoesAtual = assinaturaNova;
+
+    assinaturaRankingAtual = assinaturaRankingNova;
+
+    removerInterfaceAnterior();
+}
 
 const navStyle =
     getComputedStyle(nav);
@@ -608,8 +833,10 @@ track.className =
     "donor-track";
 
 track.style.cssText = `
-    display:flex;
-    width:max-content;
+    display:block;
+    width:100%;
+    height:100%;
+    position:relative;
     white-space:nowrap;
     will-change:transform;
 `;
@@ -618,49 +845,42 @@ track.style.cssText = `
 // CRIA TODAS AS DOAÇÕES
 // ==========================================================
 
-const lista =
-    [...dados.doacoes].reverse();
+const ESPACO_ENTRE_ITENS = 20;
+
+const lista = [...dados.doacoes].reverse();
 
 for (const doacao of lista) {
 
-    const valor =
-        numeroSeguro(
-            doacao.valor
-        );
+    const valor = numeroSeguro(doacao.valor);
 
-    const span =
-        criarElemento("span");
+    const span = criarElemento("span");
 
     span.style.cssText = `
-        display:inline-block;
-        color: white;
+        display:inline-flex;
+        align-items:center;
+        flex:0 0 auto;
+        width:max-content;
+        color:white;
         font-family:'Orbitron', Arial, sans-serif;
         font-size:0.8rem;
         font-weight:normal;
-        padding:0 10px;
+        padding:0;
         letter-spacing:2px;
         line-height:1.2;
         white-space:nowrap;
     `;
 
-
-    // Nome seguro (textContent)
-
     span.append(
-        document.createTextNode(
-            doacao.nome + " "
-        )
+        document.createTextNode(doacao.nome + " ")
     );
 
-
-    const badge =
-        criarElemento(
-            "span",
-            formatarReal(valor)
-        );
+    const badge = criarElemento(
+        "span",
+        formatarReal(valor)
+    );
 
     badge.style.cssText = `
-        color: black;
+        color:black;
         background:${getDonorBackground(valor)};
         padding:1px 5px;
         border-radius:20px;
@@ -668,195 +888,165 @@ for (const doacao of lista) {
         font-weight:700;
         display:inline-block;
         margin-left:2px;
+        flex:0 0 auto;
+        white-space:nowrap;
     `;
 
+    span.appendChild(badge);
+    track.appendChild(span);
+}
 
-    span.appendChild(
-        badge
+tickerDiv.appendChild(track);
+wrapper.appendChild(tickerDiv);
+
+
+// ==========================================================
+// AGUARDA A FONTE ANTES DE MEDIR O TICKER
+// ==========================================================
+
+async function aguardarFonteOrbitron() {
+
+    if (!document.fonts || !document.fonts.load)
+        return;
+
+    const variacoes = [
+        "400 16px Orbitron",
+        "700 16px Orbitron"
+    ];
+
+    await Promise.all(
+        variacoes.map(fonte =>
+            document.fonts.load(fonte).catch(() => {})
+        )
     );
 
-    track.appendChild(
-        span
-    );
-
+    if (document.fonts.ready) {
+        await document.fonts.ready;
+    }
 }
 
 
+// ==========================================================
+// INICIA O TICKER
+// ==========================================================
 
-tickerDiv.appendChild(
-    track
-);
+aguardarFonteOrbitron().then(() => {
 
-
-
-wrapper.appendChild(
-    tickerDiv
-);
-
-
-
-requestAnimationFrame(() => {
-
-    const larguraContainer =
-        tickerDiv.clientWidth;
-
-    const larguraTrack =
-        track.getBoundingClientRect().width;
-
-
-    if (
-        currentAnimation
-    ) {
-
-        currentAnimation.cancel();
-
-    }
     requestAnimationFrame(() => {
 
-        const containerWidth = tickerDiv.clientWidth;
-        const trackWidth = track.getBoundingClientRect().width;
+        const containerWidth =
+            tickerDiv.clientWidth;
+
+        const itens =
+            [...track.children];
+
+        if (!itens.length)
+            return;
 
         if (currentAnimation) {
-            currentAnimation.cancel();
+            cancelAnimationFrame(currentAnimation);
+            currentAnimation = null;
         }
 
-        // Calcula a distância TOTAL necessária:
-        // Começa com a lista toda escondida à esquerda (-trackWidth)
-        // E andará até a lista TODA passar do canto direito (containerWidth + trackWidth)
-        const pixelsPorSegundo = 80; 
-        const distanciaTotal = containerWidth + trackWidth;
-        const tempoAnimacao = (distanciaTotal / pixelsPorSegundo) * 1000;
 
-        currentAnimation = track.animate(
-            [
-                {
-                    // 1. Escondido 100% no lado esquerdo fora da tela
-                    transform: `translateX(${-trackWidth}px)`
-                },
-                {
-                    // 2. Anda para a direita até o ÚLTIMO ITEM (Kauã) passar 100% pelo lado direito
-                    transform: `translateX(${containerWidth + trackWidth}px)`
-                }
-            ],
-            {
-                duration: tempoAnimacao,
-                iterations: Infinity,
-                easing: "linear",
-                fill: "forwards"
+        // ==================================================
+        // ORGANIZA TODOS OS DOADORES EM UMA ÚNICA LINHA
+        // ==================================================
+
+        track.style.cssText = `
+            display:flex;
+            align-items:center;
+            gap:${ESPACO_ENTRE_ITENS}px;
+            width:max-content;
+            min-width:max-content;
+            height:100%;
+            position:relative;
+            white-space:nowrap;
+            will-change:transform;
+        `;
+
+
+        // ==================================================
+        // CALCULA A LARGURA REAL DO TICKER
+        // ==================================================
+
+        const larguraTrack =
+            track.scrollWidth;
+
+        if (!larguraTrack)
+            return;
+
+
+        // ==================================================
+        // VELOCIDADE
+        // ==================================================
+
+        const pixelsPorSegundo = 90;
+
+
+        // ==================================================
+        // O TRACK COMEÇA TOTALMENTE FORA DA ESQUERDA
+        // ==================================================
+
+        let inicio = null;
+
+        const distanciaTotal =
+            larguraTrack + containerWidth;
+
+        const duracaoTotal =
+            (distanciaTotal / pixelsPorSegundo) * 1000;
+
+
+        // ==================================================
+        // ANIMAÇÃO
+        // ==================================================
+
+        function animarTicker(timestamp) {
+
+            if (inicio === null)
+                inicio = timestamp;
+
+            const tempoDecorrido =
+                timestamp - inicio;
+
+
+            // Quando todo o conteúdo termina de sair
+            // pela direita, começa novamente pela esquerda.
+            if (tempoDecorrido >= duracaoTotal) {
+                inicio = timestamp;
             }
-        );
+
+
+            const tempoAtual =
+                timestamp - inicio;
+
+            const deslocamento =
+                (tempoAtual / 1000) *
+                pixelsPorSegundo;
+
+
+            // Começa com todo o ticker fora da esquerda
+            // e termina com todo o ticker fora da direita.
+            const posicao =
+                -larguraTrack + deslocamento;
+
+
+            track.style.transform =
+                `translate3d(${posicao}px, 0, 0)`;
+
+
+            currentAnimation =
+                requestAnimationFrame(animarTicker);
+        }
+
+
+        currentAnimation =
+            requestAnimationFrame(animarTicker);
 
     });
 
 });
 
-// ==========================================================
-// TOTAL
-// ==========================================================
-
-const currentStr =
-    formatarReal(
-        numeroSeguro(dados.total)
-    );
-
-const goalStr =
-    formatarReal(GOAL);
-
-const progressCard =
-    document.getElementById("progress-card");
-
-const porcentagem = Math.min(
-    (numeroSeguro(dados.total) / GOAL) * 100,
-    100
-).toFixed(1);
-
-// elemento novo inserido
-const valorArrecadado =
-    document.getElementById("valor-arrecadado");
-
-const valorMeta =
-    document.getElementById("valor-meta");
-
-const porcentagemMeta =
-    document.getElementById("porcentagem");
-
-const barra =
-    document.getElementById("barra-preenchida");
-
-
-
-if (valorArrecadado)
-    valorArrecadado.textContent = currentStr;
-
-if (valorMeta)
-    valorMeta.textContent = goalStr;
-
-if (porcentagemMeta)
-    porcentagemMeta.textContent = porcentagem + "%";
-
-if (barra)
-    barra.style.width = porcentagem + "%";
-
-// elemento novo finalizado  
-if (progressCard) {
-
-    progressCard.innerHTML = "";
-
-    const titulo = criarElemento(
-        "div",
-        `${porcentagem}% arrecadado`
-    );
-
-    titulo.style.cssText = `
-        color:#fff;
-        font-family:'Orbitron',Arial,sans-serif;
-        font-size:1rem;
-        text-align:center;
-        margin-bottom:8px;
-        letter-spacing:2px;
-    `;
-
-    const barra = criarElemento("div");
-
-    barra.style.cssText = `
-        width:100%;
-        height:12px;
-        background:#4b3528;
-        border-radius:20px;
-        overflow:hidden;
-    `;
-
-    const preenchimento =
-        criarElemento("div");
-
-    preenchimento.style.cssText = `
-        width:${porcentagem}%;
-        height:100%;
-        background:#8F9333;
-        transition:width .5s ease;
-    `;
-
-    barra.appendChild(preenchimento);
-
-    const texto = criarElemento(
-        "div",
-        `${currentStr} de ${goalStr}`
-    );
-
-    texto.style.cssText = `
-        margin-top:8px;
-        color:#D9CDBF;
-        text-align:center;
-        font-size:.9rem;
-        font-family:'Open Sans',sans-serif;
-    `;
-
-    progressCard.append(
-        titulo,
-        barra,
-        texto
-    );
-}
 
 const totalDiv =
     criarElemento("div");
@@ -989,6 +1179,17 @@ rankingDiv.innerHTML = `
 
 const rankingGrid =
     rankingDiv.querySelector(".ranking-grid");
+
+
+window.__rankingDoacoes = Array.isArray(dados.ranking)
+    ? dados.ranking.map(item => ({
+        id: item.id ?? null,
+        nome: item.nome,
+        valor: numeroSeguro(item.valor),
+        mensagem: item.mensagem || "Sem mensagem"
+    }))
+    : [];
+
 
 const medalhas = [
     {
@@ -1482,31 +1683,24 @@ carregarDoacoes()
 // ATUALIZAÇÃO
 // ==========================================================
 
-if(
-    window.__donorTickerInterval
-){
+let timerAtualizacao = null;
 
-    clearInterval(
-        window.__donorTickerInterval
-    );
+async function atualizarDoacoesContinuamente() {
+    try {
+        await carregarDoacoes();
+    } catch (error) {
+        console.error("Falha ao atualizar rankings.", error);
+    } finally {
+        clearTimeout(timerAtualizacao);
 
+        timerAtualizacao = setTimeout(
+            atualizarDoacoesContinuamente,
+            UPDATE_INTERVAL
+        );
+    }
 }
 
-
-window.__donorTickerInterval =
-    setInterval(()=>{
-
-        carregarDoacoes()
-            .catch(error=>{
-
-                console.error(
-                    "Falha ao atualizar ticker.",
-                    error
-                );
-
-            });
-
-    },UPDATE_INTERVAL);
+atualizarDoacoesContinuamente();
 
 
 // ==========================================================

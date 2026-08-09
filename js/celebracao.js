@@ -6,10 +6,10 @@
     let filaDoacoes = [];
 
     const EMOJIS = [
-        "🎉",
-        "🌟",
-        "💸",
-        "💟"
+        "🦇",
+        "🦇",
+        "🦇",
+        "🦇"
     ];
 
     // Coloque aqui o caminho da imagem .png correspondente a cada valor
@@ -61,18 +61,25 @@
 
         baixo: [
             new Audio("assets/baixo/duck-toy.mp3"),
-            new Audio("assets/baixo/fart-meme.mp3")
+            new Audio("assets/baixo/fart-meme.mp3"),
+            new Audio("assets/baixo/huh.mp3"),
+            new Audio("assets/baixo/my-god.mp3")
 
         ],
 
         medio: [
             new Audio("assets/medio/snupdog.mp3"),
-            new Audio("assets/medio/fein-fein.mp3")
+            new Audio("assets/medio/fein-fein.mp3"),
+            new Audio("assets/medio/el-senor.mp3"),
+            new Audio("assets/medio/gil-farmar.mp3")
         ],
 
         alto: [
             new Audio("assets/alto/aura-tiki.mp3"),
-            new Audio("assets/alto/subaru.mp3")
+            new Audio("assets/alto/subaru.mp3"),
+            new Audio("assets/alto/67.mp3"),
+            new Audio("assets/alto/sigma.mp3"),
+            new Audio("assets/alto/venom-aura.mp3")
         ]
 
     };
@@ -177,19 +184,33 @@
 
         document.body.appendChild(container);
     }
+    // Faixas de valor -> grupo de áudio. Fácil de ajustar no futuro:
+    // basta mudar os números aqui, sem tocar no resto do código.
+    // Regra: valor <= "ate" cai nessa faixa; a última faixa (sem "ate")
+    // é o fallback para qualquer valor acima de todas as outras.
+    const FAIXAS_SOM = [
+        { ate: 10,    grupo: "baixo" },
+        { ate: 99.99, grupo: "medio" },
+        { grupo: "alto" }
+    ];
+
+    function escolherGrupoSom(valor) {
+
+        for (const faixa of FAIXAS_SOM) {
+
+            if (faixa.ate === undefined || valor <= faixa.ate) {
+                return faixa.grupo;
+            }
+
+        }
+
+        return "alto";
+
+    }
+
     function tocarSom(valor) {
 
-        let grupo;
-
-        if (valor >= 10) {
-            grupo = AUDIOS.alto;
-        }
-        else if (valor >= 5) {
-            grupo = AUDIOS.medio;
-        }
-        else {
-            grupo = AUDIOS.baixo;
-        }
+        const grupo = AUDIOS[escolherGrupoSom(valor)];
 
         const audio =
             grupo[Math.floor(Math.random() * grupo.length)];
@@ -1019,7 +1040,7 @@
         }, duracaoCelebracao);
         // ===== FIM CAIXA DE DOAÇÃO =====
 
-        }, 10000);
+        }, 5000);
 
     };
 
