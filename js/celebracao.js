@@ -16,8 +16,9 @@
     // exato de doação (mesma pasta/padrão usado pelos áudios em "../assets/...")
     const MAPA_IMAGENS = {
         1:    "foto/personagens/pobre/rosa.png",
-        2:    "foto/personagens/pobre/pena.png",
+        2:    "foto/personagens/pobre/bode.png",
         3:    "foto/personagens/pobre/vela.png",
+        4:    "foto/personagens/pobre/pena.png",
         5:    "foto/personagens/pobre/moeda.png",
         7:    "foto/personagens/pobre/apolo2.png",
         10:   "foto/personagens/pobre/hermes.png",
@@ -62,6 +63,7 @@
         baixo: [
             new Audio("assets/baixo/duck-toy.mp3"),
             new Audio("assets/baixo/fart-meme.mp3"),
+            new Audio("assets/baixo/bode-gritando.mp3"),
             new Audio("assets/baixo/huh.mp3"),
             new Audio("assets/baixo/my-god.mp3")
 
