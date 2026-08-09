@@ -375,7 +375,7 @@
             10.9    // R$ 499+
         ][nivel - 1];
 
-        // Posição/tamanho da imagem .png (usados também pelo círculo dourado
+        // Posição/tamanho da imagem .png (usados também pelo círculo dourado - mostrarCelebracao("Lucadfds", 2); cod
         // e pela caixa de doação, por isso ficam definidos aqui em cima)
         const imagemTopoVh = 50;
         const tamanhoImagem = 220 + nivel * 15; // nivel 1 → 235px | nivel 7 → 325px
