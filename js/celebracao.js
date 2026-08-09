@@ -16,7 +16,7 @@
     // exato de doação (mesma pasta/padrão usado pelos áudios em "../assets/...")
     const MAPA_IMAGENS = {
         1:    "foto/personagens/pobre/rosa.png",
-        2:    "foto/personagens/pobre/bode.png",
+        2:    "foto/personagens/pobre/bode-gritando.png",
         3:    "foto/personagens/pobre/vela.png",
         4:    "foto/personagens/pobre/pena.png",
         5:    "foto/personagens/pobre/moeda.png",
