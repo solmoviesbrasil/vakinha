@@ -4,7 +4,6 @@
 // ==========================================================
 // CONFIGURAÇÃO
 // ==========================================================
-
 const API_URL =
     'https://sistema-doacoes.moviesbrasil.workers.dev/doacoes';
 
@@ -42,6 +41,9 @@ let atualizacaoPendente = false;
 // ==========================================================
 // FORMATAÇÃO
 // ==========================================================
+
+alert("Em respeito aos colaboradores, venho, através deste comunicado, informar que estou saindo da Sol Movies Brasil por inúmeros motivos, os quais prefiro manter em off. Nesse sentido, os valores arrecadados são de responsabilidade do Mateus.  Agradeço a todos que doaram, que acreditaram no projeto e que, de alguma forma, contribuíram para que ele chegasse até aqui. Despeço-me por aqui. — Escrito por Lucas.");
+
 
 function formatarReal(valor) {
 
