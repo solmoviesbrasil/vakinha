@@ -507,6 +507,44 @@ section.layout-sessao1 {
 /* ===========================================
    SEGUNDO LAYOUT (SESSÃO 2)
 =========================================== */
+#new-mensagem{
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    border: 1px solid rgba(105, 105, 105, 0.317);
+    background-color: rgb(8, 8, 8);
+    max-width: 1100px;
+    margin: 0px auto 20px;
+}
+.imagem-alerta{
+    max-width: 180px;
+    min-width: 100px;
+}
+#cor{
+    margin: auto;
+}
+.cor-destaque{
+    background-color: white;
+    font-weight: bold;
+    color: black;
+}
+
+#mensagem-texto{
+    max-width: 900px;
+}
+
+#mensagem-texto p{
+    margin: 10px 0;
+}
+#mensagem-texto span{
+    padding: 5px 10px;
+}
+#mensagem-texto span:hover{
+    background-color: yellow;
+    color: black;
+    transition: 1s;
+}
 .alerta{
     color: rgba(255, 0, 0, 0.684);
     font-weight: bold;
@@ -805,6 +843,9 @@ footer li{
 
 /* Mobile pequeno */
 @media (max-width: 550px) {
+    #new-mensagem{
+        flex-wrap: wrap;
+    }
     .sub {
         flex-direction: column;
         text-align: center;
